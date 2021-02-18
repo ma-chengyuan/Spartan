@@ -1,27 +1,27 @@
 #![allow(non_snake_case)]
 #![feature(test)]
 #![deny(missing_docs)]
-#![feature(external_doc)]
-#![doc(include = "../README.md")]
+//#![feature(external_doc)]
+#![doc = include_str!("../README.md")]
 
+extern crate blake3;
 extern crate byteorder;
 extern crate core;
-extern crate curve25519_dalek;
 extern crate digest;
+extern crate ff;
+extern crate fffft;
+extern crate ligero_pc;
 extern crate merlin;
-extern crate rand;
-extern crate sha3;
+extern crate rand_chacha;
+extern crate rand_core;
 extern crate test;
 
 #[cfg(feature = "multicore")]
 extern crate rayon;
 
-mod commitments;
 mod dense_mlpoly;
 mod errors;
-mod group;
 mod math;
-mod nizk;
 mod product_tree;
 mod r1csinstance;
 mod r1csproof;
@@ -35,6 +35,7 @@ mod unipoly;
 
 use core::cmp::max;
 use errors::{ProofVerifyError, R1CSError};
+use ff::PrimeField;
 use merlin::Transcript;
 use r1csinstance::{
   R1CSCommitment, R1CSCommitmentGens, R1CSDecommitment, R1CSEvalProof, R1CSInstance,
@@ -42,9 +43,10 @@ use r1csinstance::{
 use r1csproof::{R1CSGens, R1CSProof};
 use random::RandomTape;
 use scalar::Scalar;
-use serde::{Deserialize, Serialize};
+use scalar::ScalarRepr;
 use timer::Timer;
 use transcript::{AppendToTranscript, ProofTranscript};
+use ff::Field;
 
 /// `ComputationCommitment` holds a public preprocessed NP statement (e.g., R1CS)
 pub struct ComputationCommitment {
@@ -68,8 +70,8 @@ impl Assignment {
     let bytes_to_scalar = |vec: &Vec<[u8; 32]>| -> Result<Vec<Scalar>, R1CSError> {
       let mut vec_scalar: Vec<Scalar> = Vec::new();
       for i in 0..vec.len() {
-        let val = Scalar::from_bytes(&vec[i]);
-        if val.is_some().unwrap_u8() == 1 {
+        let val = Scalar::from_repr(ScalarRepr(vec[i]));
+        if val.is_some() {
           vec_scalar.push(val.unwrap());
         } else {
           return Err(R1CSError::InvalidScalar);
@@ -176,8 +178,8 @@ impl Instance {
             return Err(R1CSError::InvalidIndex);
           }
 
-          let val = Scalar::from_bytes(&val_bytes);
-          if val.is_some().unwrap_u8() == 1 {
+          let val = Scalar::from_repr(ScalarRepr(val_bytes));
+          if val.is_some() {
             // if col >= num_vars, it means that it is referencing a 1 or input in the satisfying
             // assignment
             if col >= num_vars {
@@ -310,7 +312,7 @@ impl SNARKGens {
 }
 
 /// `SNARK` holds a proof produced by Spartan SNARK
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub struct SNARK {
   r1cs_sat_proof: R1CSProof,
   inst_evals: (Scalar, Scalar, Scalar),
@@ -375,8 +377,8 @@ impl SNARK {
         )
       };
 
-      let proof_encoded: Vec<u8> = bincode::serialize(&proof).unwrap();
-      Timer::print(&format!("len_r1cs_sat_proof {:?}", proof_encoded.len()));
+      //let proof_encoded: Vec<u8> = bincode::serialize(&proof).unwrap();
+      //Timer::print(&format!("len_r1cs_sat_proof {:?}", proof_encoded.len()));
 
       (proof, rx, ry)
     };
@@ -404,8 +406,8 @@ impl SNARK {
         &mut random_tape,
       );
 
-      let proof_encoded: Vec<u8> = bincode::serialize(&proof).unwrap();
-      Timer::print(&format!("len_r1cs_eval_proof {:?}", proof_encoded.len()));
+      //let proof_encoded: Vec<u8> = bincode::serialize(&proof).unwrap();
+      //Timer::print(&format!("len_r1cs_eval_proof {:?}", proof_encoded.len()));
       proof
     };
 
@@ -484,7 +486,7 @@ impl NIZKGens {
 }
 
 /// `NIZK` holds a proof produced by Spartan NIZK
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
 pub struct NIZK {
   r1cs_sat_proof: R1CSProof,
   r: (Vec<Scalar>, Vec<Scalar>),
@@ -529,8 +531,8 @@ impl NIZK {
         transcript,
         &mut random_tape,
       );
-      let proof_encoded: Vec<u8> = bincode::serialize(&proof).unwrap();
-      Timer::print(&format!("len_r1cs_sat_proof {:?}", proof_encoded.len()));
+      //let proof_encoded: Vec<u8> = bincode::serialize(&proof).unwrap();
+      //Timer::print(&format!("len_r1cs_sat_proof {:?}", proof_encoded.len()));
       (proof, rx, ry)
     };
 
@@ -617,10 +619,7 @@ mod tests {
     let num_vars = 8;
     let num_inputs = 1;
 
-    let zero: [u8; 32] = [
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0,
-    ];
+    let zero: [u8; 32] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     let A = vec![(0, 0, zero)];
     let B = vec![(100, 1, zero)];
@@ -637,14 +636,10 @@ mod tests {
     let num_vars = 8;
     let num_inputs = 1;
 
-    let zero: [u8; 32] = [
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0,
-    ];
+    let zero: [u8; 32] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     let larger_than_mod = [
-      3, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8, 216,
-      57, 51, 72, 125, 157, 41, 83, 167, 237, 115,
+      255, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 0, 0, 3, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 0, 255
     ];
 
     let A = vec![(0, 0, zero)];
@@ -671,20 +666,20 @@ mod tests {
     let mut C: Vec<(usize, usize, [u8; 32])> = Vec::new();
 
     // Create a^2 + b + 13
-    A.push((0, num_vars + 2, Scalar::one().to_bytes())); // 1*a
-    B.push((0, num_vars + 2, Scalar::one().to_bytes())); // 1*a
-    C.push((0, num_vars + 1, Scalar::one().to_bytes())); // 1*z
-    C.push((0, num_vars, (-Scalar::from(13u64)).to_bytes())); // -13*1
-    C.push((0, num_vars + 3, (-Scalar::one()).to_bytes())); // -1*b
+    A.push((0, num_vars + 2, Scalar::one().to_repr().0)); // 1*a
+    B.push((0, num_vars + 2, Scalar::one().to_repr().0)); // 1*a
+    C.push((0, num_vars + 1, Scalar::one().to_repr().0)); // 1*z
+    C.push((0, num_vars, (-Scalar::from(13u64)).to_repr().0)); // -13*1
+    C.push((0, num_vars + 3, (-Scalar::one()).to_repr().0)); // -1*b
 
     // Var Assignments (Z_0 = 16 is the only output)
-    let vars = vec![Scalar::zero().to_bytes(); num_vars];
+    let vars = vec![Scalar::zero().to_repr().0; num_vars];
 
     // create an InputsAssignment (a = 1, b = 2)
-    let mut inputs = vec![Scalar::zero().to_bytes(); num_inputs];
-    inputs[0] = Scalar::from(16u64).to_bytes();
-    inputs[1] = Scalar::from(1u64).to_bytes();
-    inputs[2] = Scalar::from(2u64).to_bytes();
+    let mut inputs = vec![Scalar::zero().to_repr().0; num_inputs];
+    inputs[0] = Scalar::from(16u64).to_repr().0;
+    inputs[1] = Scalar::from(1u64).to_repr().0;
+    inputs[2] = Scalar::from(2u64).to_repr().0;
 
     let assignment_inputs = InputsAssignment::new(&inputs).unwrap();
     let assignment_vars = VarsAssignment::new(&vars).unwrap();
