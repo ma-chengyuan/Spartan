@@ -8,9 +8,8 @@ use blake3::traits::digest;
 use core::ops::Index;
 use digest::Output;
 use ff::Field;
-//use ligero_pc::{commit_with_dims, prove, verify, LigeroCommit, LigeroEvalProof};
 use merlin::Transcript;
-use sdig_pc::{SdigCommit, SdigEncoding, SdigEvalProof};
+use ligero_pc::{LigeroCommit, LigeroEncoding, LigeroEvalProof};
 
 type Hasher = blake3::Hasher;
 
@@ -48,8 +47,8 @@ pub struct PolyCommitment {
 
 #[derive(Debug)]
 pub struct PolyDecommitment {
-  decomm: SdigCommit<Hasher, Scalar>,
-  enc: SdigEncoding<Scalar>,
+  decomm: LigeroCommit<Hasher, Scalar>,
+  enc: LigeroEncoding<Scalar>,
 }
 
 pub struct EqPolynomial {
@@ -157,9 +156,8 @@ impl DensePolynomial {
 
     //let enc = LigeroEncoding::new(coeffs.len());
     //let decomm = LigeroCommit::<Hasher, _>::commit(&coeffs, &enc).unwrap();
-    println!("num_vars: {:?}", self.num_vars);
-    let enc = SdigEncoding::new_ml(self.num_vars, 0);
-    let decomm = SdigCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
+    let enc = LigeroEncoding::new_ml(self.num_vars);
+    let decomm = LigeroCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
     let C = decomm.get_root().into_raw(); // this is the polynomial commitment
     (PolyCommitment { C }, PolyDecommitment { decomm, enc })
   }
@@ -249,7 +247,7 @@ impl AppendToTranscript for PolyCommitment {
 
 #[derive(Debug)]
 pub struct PolyEvalProof {
-  proof: SdigEvalProof<Hasher, Scalar>,
+  proof: LigeroEvalProof<Hasher, Scalar>,
   left_num_vars: usize,
   right_num_vars: usize,
 }
@@ -349,7 +347,7 @@ impl PolyEvalProof {
     assert_eq!(L.len(), L_size);
     assert_eq!(R.len(), R_size);
     assert_eq!(R.len(), self.proof.get_n_per_row());
-    let enc = SdigEncoding::new_from_dims(self.proof.get_n_per_row(), self.proof.get_n_cols(), 0);
+    let enc = LigeroEncoding::new_from_dims(self.proof.get_n_per_row(), self.proof.get_n_cols());
     let res = self
       .proof
       .verify(&comm.C, &L, &R, &enc, transcript)
