@@ -157,7 +157,6 @@ impl DensePolynomial {
 
     //let enc = LigeroEncoding::new(coeffs.len());
     //let decomm = LigeroCommit::<Hasher, _>::commit(&coeffs, &enc).unwrap();
-    println!("num_vars: {:?}", self.num_vars);
     let enc = SdigEncoding::new_ml(self.num_vars, 0);
     let decomm = SdigCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
     let C = decomm.get_root().into_raw(); // this is the polynomial commitment
@@ -311,9 +310,6 @@ impl PolyEvalProof {
     let proof = proof.unwrap();
 
     assert_eq!(decomm.decomm.get_n_per_row(), proof.get_n_per_row());
-    println!("r.len(): {:?}", r.len());
-    println!("get_n_per_row: {:?}", decomm.decomm.get_n_per_row());
-    println!("get_n_rows: {:?}", decomm.decomm.get_n_rows());
     assert_eq!(
       decomm.decomm.get_n_per_row() * decomm.decomm.get_n_rows(),
       1 << r.len()
