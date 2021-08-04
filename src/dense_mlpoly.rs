@@ -8,8 +8,9 @@ use blake3::traits::digest;
 use core::ops::Index;
 use digest::Output;
 use ff::Field;
-use ligero_pc::{commit_with_dims, prove, verify, LigeroCommit, LigeroEvalProof};
+//use ligero_pc::{commit_with_dims, prove, verify, LigeroCommit, LigeroEvalProof};
 use merlin::Transcript;
+use sdig_pc::{SdigCommit, SdigEncoding, SdigEvalProof};
 
 type Hasher = blake3::Hasher;
 
@@ -47,7 +48,8 @@ pub struct PolyCommitment {
 
 #[derive(Debug)]
 pub struct PolyDecommitment {
-  decomm: LigeroCommit<Hasher, Scalar>,
+  decomm: SdigCommit<Hasher, Scalar>,
+  enc: SdigEncoding<Scalar>,
 }
 
 pub struct EqPolynomial {
@@ -147,53 +149,19 @@ impl DensePolynomial {
   pub fn commit(
     &self,
     _gens: &PolyCommitmentGens,
-    random_tape: Option<&mut RandomTape>,
-  ) -> (PolyCommitment, PolyDecommitment, PolyCommitmentBlinds) {
+    _random_tape: Option<&mut RandomTape>,
+  ) -> (PolyCommitment, PolyDecommitment) {
     let n = self.Z.len();
     let ell = self.get_num_vars();
     assert_eq!(n, ell.pow2());
 
-    let (left_num_vars, right_num_vars) = EqPolynomial::compute_factored_lens(ell);
-    let L_size = left_num_vars.pow2();
-    let R_size = right_num_vars.pow2();
-    assert_eq!(L_size * R_size, n);
-
-    let blinds = if random_tape.is_some() {
-      PolyCommitmentBlinds {
-        blinds: random_tape.unwrap().random_vector(b"poly_blinds", L_size),
-      }
-    } else {
-      PolyCommitmentBlinds {
-        blinds: vec![Scalar::zero(); L_size],
-      }
-    };
-    let rho_inv = 4.0;
-    let n_rows = L_size;
-    let n_per_row = R_size;
-    let n_cols = n_per_row * rho_inv as usize;
-    let n_col_opens = core::cmp::min(190, n_cols);
-
-    let decomm = commit_with_dims::<Hasher, Scalar>(
-      &self.Z,
-      1.0 / rho_inv,
-      2usize,
-      n_col_opens,
-      n_rows,
-      n_per_row,
-      n_cols,
-    )
-    .unwrap();
-    let C = decomm.get_root().unwrap();
-    (PolyCommitment { C }, PolyDecommitment { decomm }, blinds)
-  }
-
-  pub fn bound(&self, L: &[Scalar]) -> Vec<Scalar> {
-    let (left_num_vars, right_num_vars) = EqPolynomial::compute_factored_lens(self.get_num_vars());
-    let L_size = left_num_vars.pow2();
-    let R_size = right_num_vars.pow2();
-    (0..R_size)
-      .map(|i| (0..L_size).map(|j| L[j] * self.Z[j * R_size + i]).sum())
-      .collect()
+    //let enc = LigeroEncoding::new(coeffs.len());
+    //let decomm = LigeroCommit::<Hasher, _>::commit(&coeffs, &enc).unwrap();
+    println!("num_vars: {:?}", self.num_vars);
+    let enc = SdigEncoding::new_ml(self.num_vars, 0);
+    let decomm = SdigCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
+    let C = decomm.get_root().into_raw(); // this is the polynomial commitment
+    (PolyCommitment { C }, PolyDecommitment { decomm, enc })
   }
 
   pub fn bound_poly_var_top(&mut self, r: &Scalar) {
@@ -281,7 +249,9 @@ impl AppendToTranscript for PolyCommitment {
 
 #[derive(Debug)]
 pub struct PolyEvalProof {
-  proof: LigeroEvalProof<Hasher, Scalar>,
+  proof: SdigEvalProof<Hasher, Scalar>,
+  left_num_vars: usize,
+  right_num_vars: usize,
 }
 
 impl PolyEvalProof {
@@ -306,7 +276,10 @@ impl PolyEvalProof {
     assert_eq!(poly.get_num_vars(), r.len());
 
     // compute L and R
-    let (left_num_vars, right_num_vars) = EqPolynomial::compute_factored_lens(r.len());
+    let (left_num_vars, right_num_vars) = (
+      decomm.decomm.get_n_rows().log2(),
+      r.len() - decomm.decomm.get_n_rows().log2(),
+    );
     let L_size = left_num_vars.pow2();
     let R_size = right_num_vars.pow2();
 
@@ -321,19 +294,38 @@ impl PolyEvalProof {
     let _blind_Zr = blind_Zr_opt.map_or(&zero, |p| p);
 
     // compute the L and R vectors
-    let eq = EqPolynomial::new(r.to_vec());
-    let (L, R) = eq.compute_factored_evals();
+    let L = EqPolynomial::new(r[..left_num_vars].to_vec()).evals();
+    let R = EqPolynomial::new(r[left_num_vars..].to_vec()).evals();
     assert_eq!(L.len(), L_size);
     assert_eq!(R.len(), R_size);
 
-    // compute the vector underneath L*Z and the L*blinds
-    // compute vector-matrix product between L and Z viewed as a matrix
-    let _LZ = poly.bound(&L);
-    let _LZ_blind: Scalar = (0..L.len()).map(|i| blinds.blinds[i] * L[i]).sum();
+    assert_eq!(decomm.decomm.get_n_rows(), L.len());
 
-    let proof = prove::<Hasher, Scalar>(&decomm.decomm, &L, transcript).unwrap();
+    // L is the outer tensor.  R is the inner tensor.
+    let proof = decomm.decomm.prove(&L, &decomm.enc, transcript);
 
-    PolyEvalProof { proof }
+    if proof.is_err() {
+      println!("{:?}", proof);
+    }
+
+    let proof = proof.unwrap();
+
+    assert_eq!(decomm.decomm.get_n_per_row(), proof.get_n_per_row());
+    println!("r.len(): {:?}", r.len());
+    println!("get_n_per_row: {:?}", decomm.decomm.get_n_per_row());
+    println!("get_n_rows: {:?}", decomm.decomm.get_n_rows());
+    assert_eq!(
+      decomm.decomm.get_n_per_row() * decomm.decomm.get_n_rows(),
+      1 << r.len()
+    );
+
+    assert_eq!(R.len(), decomm.decomm.get_n_per_row());
+
+    PolyEvalProof {
+      proof,
+      left_num_vars,
+      right_num_vars,
+    }
   }
 
   pub fn verify(
@@ -347,29 +339,21 @@ impl PolyEvalProof {
     transcript.append_protocol_name(PolyEvalProof::protocol_name());
 
     // compute L and R
-    let (left_num_vars, right_num_vars) = EqPolynomial::compute_factored_lens(r.len());
+    let (left_num_vars, right_num_vars) = (self.left_num_vars, self.right_num_vars);
+    assert_eq!(left_num_vars + right_num_vars, r.len());
     let L_size = left_num_vars.pow2();
     let R_size = right_num_vars.pow2();
 
-    let eq = EqPolynomial::new(r.to_vec());
-    let (L, R) = eq.compute_factored_evals();
-    let rho_inv = 4.0;
-    let _n_rows = L_size;
-    let n_per_row = R_size;
-    let n_cols = n_per_row * rho_inv as usize;
-    let n_col_opens = core::cmp::min(190, n_cols);
-
-    let res = verify(
-      &comm.C,
-      &L,
-      &R,
-      &self.proof,
-      1.0 / rho_inv,
-      2usize,
-      n_col_opens,
-      transcript,
-    )
-    .unwrap();
+    let L = EqPolynomial::new(r[..left_num_vars].to_vec()).evals();
+    let R = EqPolynomial::new(r[left_num_vars..].to_vec()).evals();
+    assert_eq!(L.len(), L_size);
+    assert_eq!(R.len(), R_size);
+    assert_eq!(R.len(), self.proof.get_n_per_row());
+    let enc = SdigEncoding::new_from_dims(self.proof.get_n_per_row(), self.proof.get_n_cols(), 0);
+    let res = self
+      .proof
+      .verify(&comm.C, &L, &R, &enc, transcript)
+      .unwrap();
 
     if res == *eval {
       Ok(())
@@ -553,7 +537,7 @@ mod tests {
     assert_eq!(R, R2);
   }
 
-  #[test]
+  /*#[test]
   fn check_polynomial_commit() {
     let mut Z: Vec<Scalar> = Vec::new(); // Z = [1, 2, 1, 4]
     Z.push((1 as usize).to_scalar());
@@ -571,14 +555,14 @@ mod tests {
     assert_eq!(eval, (28 as usize).to_scalar());
 
     let gens = PolyCommitmentGens::new(poly.get_num_vars(), b"test-two");
-    let (poly_comm, poly_decomm, blinds) = poly.commit(&gens, None);
+    let (poly_comm, poly_decomm) = poly.commit(&gens, None);
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
     let proof = PolyEvalProof::prove(
       &poly,
       &poly_decomm,
-      Some(&blinds),
+      None,
       &r,
       &eval,
       None,
@@ -591,7 +575,7 @@ mod tests {
     assert!(proof
       .verify(&gens, &mut verifier_transcript, &r, &eval, &poly_comm)
       .is_ok());
-  }
+  }*/
 
   #[test]
   fn check_polynomial_commit_large() {
@@ -610,14 +594,14 @@ mod tests {
     let eval = poly.evaluate(&r);
 
     let gens = PolyCommitmentGens::new(poly.get_num_vars(), b"test-two");
-    let (poly_comm, poly_decomm, blinds) = poly.commit(&gens, None);
+    let (poly_comm, poly_decomm) = poly.commit(&gens, None);
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
     let proof = PolyEvalProof::prove(
       &poly,
       &poly_decomm,
-      Some(&blinds),
+      None,
       &r,
       &eval,
       None,
@@ -629,7 +613,7 @@ mod tests {
     let proof2 = PolyEvalProof::prove(
       &poly,
       &poly_decomm,
-      Some(&blinds),
+      None,
       &r,
       &eval,
       None,

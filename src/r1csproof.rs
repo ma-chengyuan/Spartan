@@ -3,7 +3,6 @@ use super::dense_mlpoly::{
   DensePolynomial, EqPolynomial, PolyCommitment, PolyCommitmentGens, PolyEvalProof,
 };
 use super::errors::ProofVerifyError;
-use super::math::Math;
 use super::r1csinstance::R1CSInstance;
 use super::random::RandomTape;
 use super::scalar::Scalar;
@@ -100,17 +99,16 @@ impl R1CSProof {
     assert!(input.len() < vars.len());
 
     let timer_commit = Timer::new("polycommit");
-    let (poly_vars, comm_vars, decomm_vars, blinds_vars) = {
+    let (poly_vars, comm_vars, decomm_vars) = {
       // create a multilinear polynomial using the supplied assignment for variables
       let poly_vars = DensePolynomial::new(vars.clone());
 
       // produce a commitment to the satisfying assignment
-      let (comm_vars, decomm_vars, blinds_vars) =
-        poly_vars.commit(&gens.gens_pc, Some(random_tape));
+      let (comm_vars, decomm_vars) = poly_vars.commit(&gens.gens_pc, Some(random_tape));
 
       // add the commitment to the prover's transcript
       comm_vars.append_to_transcript(b"poly_commitment", transcript);
-      (poly_vars, comm_vars, decomm_vars, blinds_vars)
+      (poly_vars, comm_vars, decomm_vars)
     };
     timer_commit.stop();
 
@@ -187,14 +185,13 @@ impl R1CSProof {
 
     let timer_polyeval = Timer::new("polyeval");
     let eval_vars_at_ry = poly_vars.evaluate(&ry[1..].to_vec());
-    let blind_eval = random_tape.random_scalar(b"blind_eval");
     let proof_eval_vars_at_ry = PolyEvalProof::prove(
       &poly_vars,
       &decomm_vars,
-      Some(&blinds_vars),
+      None,
       &ry[1..].to_vec(),
       &eval_vars_at_ry,
-      Some(&blind_eval),
+      None,
       &gens.gens_pc,
       transcript,
       random_tape,
@@ -386,7 +383,7 @@ mod tests {
 
   #[test]
   pub fn check_r1cs_proof() {
-    let num_vars = 1024;
+    let num_vars = 16384;
     let num_cons = num_vars;
     let num_inputs = 10;
     let (inst, vars, input) = R1CSInstance::produce_synthetic_r1cs(num_cons, num_vars, num_inputs);

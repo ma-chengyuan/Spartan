@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 use super::dense_mlpoly::DensePolynomial;
 use super::dense_mlpoly::EqPolynomial;
-use super::math::Math;
 use super::scalar::Scalar;
 use super::sumcheck::SumcheckInstanceProof;
 use super::transcript::ProofTranscript;

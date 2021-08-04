@@ -42,10 +42,10 @@ Some of our public APIs' style is inspired by the underlying crates we use.
 # use merlin::Transcript;
 # fn main() {
     // specify the size of an R1CS instance
-    let num_vars = 1024;
-    let num_cons = 1024;
+    let num_vars = 16384;
+    let num_cons = 16384;
     let num_inputs = 10;
-    let num_non_zero_entries = 1024;
+    let num_non_zero_entries = 16384;
 
     // produce public parameters
     let gens = SNARKGens::new(num_cons, num_vars, num_inputs, num_non_zero_entries);
@@ -77,8 +77,8 @@ Here is another example to use the NIZK variant of the Spartan proof system:
 # use merlin::Transcript;
 # fn main() {
     // specify the size of an R1CS instance
-    let num_vars = 1024;
-    let num_cons = 1024;
+    let num_vars = 16384;
+    let num_cons = 16384;
     let num_inputs = 10;
 
     // produce public parameters

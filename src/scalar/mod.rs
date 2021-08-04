@@ -1,11 +1,11 @@
 use core::borrow::Borrow;
 use core::iter::{Product, Sum};
 use ff::{Field, PrimeField};
-use ligero_pc::FieldHash;
+use ff_derive_num::Num;
 use serde::{Deserialize, Serialize};
 
 // BLS12-381 scalar
-#[derive(PrimeField, Serialize, Deserialize)]
+#[derive(PrimeField, Num, Serialize, Deserialize)]
 #[PrimeFieldModulus = "52435875175126190479447740508185965837690552500527637822603658699938581184513"]
 #[PrimeFieldGenerator = "7"]
 #[PrimeFieldReprEndianness = "little"]
@@ -18,13 +18,13 @@ pub struct Scalar([u64; 4]);
 //#[PrimeFieldReprEndianness = "little"]
 //pub struct Scalar([u64; 2]);
 
-impl FieldHash for Scalar {
+/*impl FieldHash for Scalar {
   type HashRepr = <Scalar as PrimeField>::Repr;
 
   fn to_hash_repr(&self) -> Self::HashRepr {
     PrimeField::to_repr(self)
   }
-}
+}*/
 
 impl<T> Product<T> for Scalar
 where

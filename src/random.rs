@@ -22,8 +22,4 @@ impl RandomTape {
   pub fn random_scalar(&mut self, label: &'static [u8]) -> Scalar {
     self.tape.challenge_scalar(label)
   }
-
-  pub fn random_vector(&mut self, label: &'static [u8], len: usize) -> Vec<Scalar> {
-    self.tape.challenge_vector(label, len)
-  }
 }
