@@ -16,6 +16,7 @@ use super::transcript::{AppendToTranscript, ProofTranscript};
 use core::cmp::Ordering;
 use ff::Field;
 use merlin::Transcript;
+use serde::{Serialize, Deserialize};
 
 #[derive(Debug)]
 pub struct SparseMatEntry {
@@ -43,7 +44,7 @@ pub struct Derefs {
   comb: DensePolynomial,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DerefsCommitment {
   comm_ops_val: PolyCommitment,
 }
@@ -80,7 +81,7 @@ impl Derefs {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DerefsEvalProof {
   proof_derefs: PolyEvalProof,
 }
@@ -342,7 +343,7 @@ impl SparseMatPolyCommitmentGens {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SparseMatPolyCommitment {
   batch_size: usize,
   num_ops: usize,
@@ -724,7 +725,7 @@ impl PolyEvalNetwork {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct HashLayerProof {
   eval_row: (Vec<Scalar>, Vec<Scalar>, Scalar),
   eval_col: (Vec<Scalar>, Vec<Scalar>, Scalar),
@@ -1078,7 +1079,7 @@ impl HashLayerProof {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct ProductLayerProof {
   eval_row: (Scalar, Vec<Scalar>, Vec<Scalar>, Scalar),
   eval_col: (Scalar, Vec<Scalar>, Vec<Scalar>, Scalar),
@@ -1368,7 +1369,7 @@ impl ProductLayerProof {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct PolyEvalNetworkProof {
   proof_prod_layer: ProductLayerProof,
   proof_hash_layer: HashLayerProof,
@@ -1486,7 +1487,7 @@ impl PolyEvalNetworkProof {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SparseMatPolyEvalProof {
   comm_derefs: DerefsCommitment,
   poly_eval_network_proof: PolyEvalNetworkProof,

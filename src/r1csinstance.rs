@@ -12,6 +12,7 @@ use super::timer::Timer;
 use ff::Field;
 use merlin::Transcript;
 use rand_core::OsRng;
+use serde::{Serialize, Deserialize};
 
 #[derive(Debug)]
 pub struct R1CSInstance {
@@ -305,7 +306,7 @@ impl R1CSInstance {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct R1CSEvalProof {
   proof: SparseMatPolyEvalProof,
 }
