@@ -16,7 +16,7 @@ use super::transcript::{AppendToTranscript, ProofTranscript};
 use core::cmp::Ordering;
 use ff::Field;
 use merlin::Transcript;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct SparseMatEntry {

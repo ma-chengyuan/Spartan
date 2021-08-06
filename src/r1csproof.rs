@@ -12,7 +12,7 @@ use super::timer::Timer;
 use super::transcript::{AppendToTranscript, ProofTranscript};
 use ff::Field;
 use merlin::Transcript;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct R1CSProof {

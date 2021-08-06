@@ -8,10 +8,10 @@ use blake3::traits::digest;
 use core::ops::Index;
 use digest::Output;
 use ff::Field;
-use merlin::Transcript;
+use lcpc2d::LcRoot;
 use ligero_pc::{LigeroCommit, LigeroEncoding, LigeroEvalProof};
-use lcpc2d::{LcRoot};
-use serde::{Serialize, Deserialize};
+use merlin::Transcript;
+use serde::{Deserialize, Serialize};
 
 type Hasher = blake3::Hasher;
 

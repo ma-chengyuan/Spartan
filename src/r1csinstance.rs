@@ -12,7 +12,7 @@ use super::timer::Timer;
 use ff::Field;
 use merlin::Transcript;
 use rand_core::OsRng;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct R1CSInstance {
