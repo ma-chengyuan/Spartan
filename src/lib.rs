@@ -47,6 +47,7 @@ use scalar::Scalar;
 use scalar::ScalarRepr;
 use timer::Timer;
 use transcript::{AppendToTranscript, ProofTranscript};
+use serde::{Serialize, Deserialize};
 
 /// `ComputationCommitment` holds a public preprocessed NP statement (e.g., R1CS)
 pub struct ComputationCommitment {
@@ -312,7 +313,7 @@ impl SNARKGens {
 }
 
 /// `SNARK` holds a proof produced by Spartan SNARK
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SNARK {
   r1cs_sat_proof: R1CSProof,
   inst_evals: (Scalar, Scalar, Scalar),
@@ -486,7 +487,7 @@ impl NIZKGens {
 }
 
 /// `NIZK` holds a proof produced by Spartan NIZK
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NIZK {
   r1cs_sat_proof: R1CSProof,
   r: (Vec<Scalar>, Vec<Scalar>),

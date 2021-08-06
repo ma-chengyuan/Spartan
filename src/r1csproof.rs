@@ -12,8 +12,9 @@ use super::timer::Timer;
 use super::transcript::{AppendToTranscript, ProofTranscript};
 use ff::Field;
 use merlin::Transcript;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct R1CSProof {
   comm_vars: PolyCommitment,
   sc_proof_phase1: SumcheckInstanceProof,

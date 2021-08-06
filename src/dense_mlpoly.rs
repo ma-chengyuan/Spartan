@@ -10,6 +10,8 @@ use digest::Output;
 use ff::Field;
 use merlin::Transcript;
 use ligero_pc::{LigeroCommit, LigeroEncoding, LigeroEvalProof};
+use lcpc2d::{LcRoot};
+use serde::{Serialize, Deserialize};
 
 type Hasher = blake3::Hasher;
 
@@ -40,9 +42,9 @@ pub struct PolyCommitmentBlinds {
   blinds: Vec<Scalar>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PolyCommitment {
-  C: Output<Hasher>,
+  C: LcRoot<Hasher, LigeroEncoding<Scalar>>,
 }
 
 #[derive(Debug)]
@@ -158,7 +160,7 @@ impl DensePolynomial {
     //let decomm = LigeroCommit::<Hasher, _>::commit(&coeffs, &enc).unwrap();
     let enc = LigeroEncoding::new_ml(self.num_vars);
     let decomm = LigeroCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
-    let C = decomm.get_root().into_raw(); // this is the polynomial commitment
+    let C = decomm.get_root(); // this is the polynomial commitment
     (PolyCommitment { C }, PolyDecommitment { decomm, enc })
   }
 
@@ -245,7 +247,7 @@ impl AppendToTranscript for PolyCommitment {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PolyEvalProof {
   proof: LigeroEvalProof<Hasher, Scalar>,
   left_num_vars: usize,
@@ -309,9 +311,6 @@ impl PolyEvalProof {
     let proof = proof.unwrap();
 
     assert_eq!(decomm.decomm.get_n_per_row(), proof.get_n_per_row());
-    println!("r.len(): {:?}", r.len());
-    println!("get_n_per_row: {:?}", decomm.decomm.get_n_per_row());
-    println!("get_n_rows: {:?}", decomm.decomm.get_n_rows());
     assert_eq!(
       decomm.decomm.get_n_per_row() * decomm.decomm.get_n_rows(),
       1 << r.len()
@@ -350,7 +349,7 @@ impl PolyEvalProof {
     let enc = LigeroEncoding::new_from_dims(self.proof.get_n_per_row(), self.proof.get_n_cols());
     let res = self
       .proof
-      .verify(&comm.C, &L, &R, &enc, transcript)
+      .verify(&comm.C.clone().into_raw(), &L, &R, &enc, transcript)
       .unwrap();
 
     if res == *eval {
