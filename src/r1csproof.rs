@@ -24,6 +24,7 @@ pub struct R1CSProof {
   proof_eval_vars_at_ry: PolyEvalProof,
 }
 
+#[derive(Debug)]
 pub struct R1CSGens {
   gens_pc: PolyCommitmentGens,
 }

@@ -82,15 +82,9 @@ impl Assignment {
       Ok(vec_scalar)
     };
 
-    let assignment_scalar = bytes_to_scalar(assignment);
-
-    // check for any parsing errors
-    if assignment_scalar.is_err() {
-      return Err(R1CSError::InvalidScalar);
-    }
-
+    let assignment_scalar = bytes_to_scalar(assignment)?;
     Ok(Assignment {
-      assignment: assignment_scalar.unwrap(),
+      assignment: assignment_scalar,
     })
   }
 
@@ -118,6 +112,7 @@ pub type VarsAssignment = Assignment;
 pub type InputsAssignment = Assignment;
 
 /// `Instance` holds the description of R1CS matrices
+#[derive(Debug)]
 pub struct Instance {
   inst: R1CSInstance,
 }
@@ -205,28 +200,16 @@ impl Instance {
         Ok(mat)
       };
 
-    let A_scalar = bytes_to_scalar(A);
-    if A_scalar.is_err() {
-      return Err(A_scalar.err().unwrap());
-    }
-
-    let B_scalar = bytes_to_scalar(B);
-    if B_scalar.is_err() {
-      return Err(B_scalar.err().unwrap());
-    }
-
-    let C_scalar = bytes_to_scalar(C);
-    if C_scalar.is_err() {
-      return Err(C_scalar.err().unwrap());
-    }
-
+    let A_scalar = bytes_to_scalar(A)?;
+    let B_scalar = bytes_to_scalar(B)?;
+    let C_scalar = bytes_to_scalar(C)?;
     let inst = R1CSInstance::new(
       num_cons_padded,
       num_vars_padded,
       num_inputs,
-      &A_scalar.unwrap(),
-      &B_scalar.unwrap(),
-      &C_scalar.unwrap(),
+      &A_scalar,
+      &B_scalar,
+      &C_scalar,
     );
 
     Ok(Instance { inst })
@@ -467,6 +450,7 @@ impl SNARK {
 }
 
 /// `NIZKGens` holds public parameters for producing and verifying proofs with the Spartan NIZK
+#[derive(Debug)]
 pub struct NIZKGens {
   gens_r1cs_sat: R1CSGens,
 }
