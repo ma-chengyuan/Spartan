@@ -45,6 +45,7 @@ impl R1CSCommitmentGens {
   }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct R1CSCommitment {
   num_cons: usize,
   num_vars: usize,

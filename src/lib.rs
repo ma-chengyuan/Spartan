@@ -50,6 +50,7 @@ use transcript::{AppendToTranscript, ProofTranscript};
 use serde::{Serialize, Deserialize};
 
 /// `ComputationCommitment` holds a public preprocessed NP statement (e.g., R1CS)
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ComputationCommitment {
   comm: R1CSCommitment,
 }
