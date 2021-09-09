@@ -11,20 +11,21 @@ use ff::Field;
 use lcpc2d::LcRoot;
 use ligero_pc::{LigeroCommit, LigeroEncoding, LigeroEvalProof};
 use merlin::Transcript;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer, Serializer};
 
 type Hasher = blake3::Hasher;
 
 #[cfg(feature = "multicore")]
 use rayon::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DensePolynomial {
   num_vars: usize, // the number of variables in the multilinear polynomial
   len: usize,
   Z: Vec<Scalar>, // evaluations of the polynomial in all the 2^num_vars Boolean inputs
 }
 
+#[derive(Debug)]
 pub struct PolyCommitmentGens {
   pub gens: usize,
 }
@@ -51,6 +52,27 @@ pub struct PolyCommitment {
 pub struct PolyDecommitment {
   decomm: LigeroCommit<Hasher, Scalar>,
   enc: LigeroEncoding<Scalar>,
+  num_vars: usize,
+}
+
+impl Serialize for PolyDecommitment {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        (&self.decomm, self.num_vars).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for PolyDecommitment {
+    fn deserialize<De>(deserializer: De) -> Result<Self, De::Error>
+    where
+        De: Deserializer<'de>,
+    {
+        let (decomm, num_vars) = <(LigeroCommit<Hasher, Scalar>, usize) as Deserialize<'de>>::deserialize(deserializer)?;
+        let enc = LigeroEncoding::new_ml(num_vars);
+        Ok(PolyDecommitment { decomm, enc, num_vars })
+    }
 }
 
 pub struct EqPolynomial {
@@ -161,7 +183,7 @@ impl DensePolynomial {
     let enc = LigeroEncoding::new_ml(self.num_vars);
     let decomm = LigeroCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
     let C = decomm.get_root(); // this is the polynomial commitment
-    (PolyCommitment { C }, PolyDecommitment { decomm, enc })
+    (PolyCommitment { C }, PolyDecommitment { decomm, enc, num_vars: self.num_vars })
   }
 
   pub fn bound_poly_var_top(&mut self, r: &Scalar) {
