@@ -56,6 +56,7 @@ pub struct ComputationCommitment {
 }
 
 /// `ComputationDecommitment` holds information to decommit `ComputationCommitment`
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ComputationDecommitment {
   decomm: R1CSDecommitment,
 }

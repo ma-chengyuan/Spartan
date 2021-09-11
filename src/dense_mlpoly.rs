@@ -18,7 +18,7 @@ type Hasher = blake3::Hasher;
 #[cfg(feature = "multicore")]
 use rayon::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DensePolynomial {
   num_vars: usize, // the number of variables in the multilinear polynomial
   len: usize,
@@ -48,7 +48,7 @@ pub struct PolyCommitment {
   C: LcRoot<Hasher, SdigEncoding<Scalar>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PolyDecommitment {
   decomm: SdigCommit<Hasher, Scalar>,
   enc: SdigEncoding<Scalar>,

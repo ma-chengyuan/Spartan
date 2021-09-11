@@ -53,6 +53,7 @@ pub struct R1CSCommitment {
   comm: SparseMatPolyCommitment,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct R1CSDecommitment {
   dense: MultiSparseMatPolynomialAsDense,
   decomm: SparseMatPolyDecommitment,
