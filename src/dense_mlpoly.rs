@@ -11,7 +11,7 @@ use ff::Field;
 use merlin::Transcript;
 use sdig_pc::{SdigCommit, SdigEncoding, SdigEvalProof};
 use lcpc2d::{LcRoot};
-use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize, Deserializer, Serializer};
 
 type Hasher = blake3::Hasher;
 
@@ -48,10 +48,31 @@ pub struct PolyCommitment {
   C: LcRoot<Hasher, SdigEncoding<Scalar>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct PolyDecommitment {
   decomm: SdigCommit<Hasher, Scalar>,
   enc: SdigEncoding<Scalar>,
+  num_vars: usize,
+}
+
+impl Serialize for PolyDecommitment {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        (&self.decomm, self.num_vars).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for PolyDecommitment {
+    fn deserialize<De>(deserializer: De) -> Result<Self, De::Error>
+    where
+        De: Deserializer<'de>,
+    {
+        let (decomm, num_vars) = <(SdigCommit<Hasher, Scalar>, usize) as Deserialize<'de>>::deserialize(deserializer)?;
+        let enc = SdigEncoding::new_ml(num_vars, 0);
+        Ok(PolyDecommitment { decomm, enc, num_vars })
+    }
 }
 
 pub struct EqPolynomial {
@@ -162,7 +183,7 @@ impl DensePolynomial {
     let enc = SdigEncoding::new_ml(self.num_vars, 0);
     let decomm = SdigCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
     let C = decomm.get_root(); // this is the polynomial commitment
-    (PolyCommitment { C }, PolyDecommitment { decomm, enc })
+    (PolyCommitment { C }, PolyDecommitment { decomm, enc, num_vars: self.num_vars })
   }
 
   pub fn bound_poly_var_top(&mut self, r: &Scalar) {
