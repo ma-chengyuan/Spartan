@@ -4,10 +4,10 @@ use ff::{Field, PrimeField};
 use ff_derive_num::Num;
 use serde::{Deserialize, Serialize};
 
-// BLS12-381 scalar
+// T&E Phase2 254-bit scalar
 #[derive(PrimeField, Num, Serialize, Deserialize)]
-#[PrimeFieldModulus = "52435875175126190479447740508185965837690552500527637822603658699938581184513"]
-#[PrimeFieldGenerator = "7"]
+#[PrimeFieldModulus = "21888242871839275222246405745257275088548364400416034343698204186575808495617"]
+#[PrimeFieldGenerator = "5"]
 #[PrimeFieldReprEndianness = "little"]
 pub struct Scalar([u64; 4]);
 
