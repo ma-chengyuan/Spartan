@@ -3,6 +3,7 @@ use super::dense_mlpoly::{
   DensePolynomial, EqPolynomial, PolyCommitment, PolyCommitmentGens, PolyEvalProof,
 };
 use super::errors::ProofVerifyError;
+use super::math::Math;
 use super::r1csinstance::R1CSInstance;
 use super::random::RandomTape;
 use super::scalar::Scalar;
@@ -31,7 +32,7 @@ pub struct R1CSGens {
 
 impl R1CSGens {
   pub fn new(label: &'static [u8], _num_cons: usize, num_vars: usize) -> Self {
-    let num_poly_vars = num_vars.log2();
+    let num_poly_vars = num_vars.ilog2();
     let gens_pc = PolyCommitmentGens::new(num_poly_vars, label);
     R1CSGens { gens_pc }
   }
@@ -128,7 +129,7 @@ impl R1CSProof {
     };
 
     // derive the verifier's challenge tau
-    let (num_rounds_x, num_rounds_y) = (inst.get_num_cons().log2(), z.len().log2());
+    let (num_rounds_x, num_rounds_y) = (inst.get_num_cons().ilog2(), z.len().ilog2());
     let tau = transcript.challenge_vector(b"challenge_tau", num_rounds_x);
     // compute the initial evaluation table for R(\tau, x)
     let mut poly_tau = DensePolynomial::new(EqPolynomial::new(tau).evals());
@@ -233,7 +234,7 @@ impl R1CSProof {
       .comm_vars
       .append_to_transcript(b"poly_commitment", transcript);
 
-    let (num_rounds_x, num_rounds_y) = (num_cons.log2(), (2 * num_vars).log2());
+    let (num_rounds_x, num_rounds_y) = (num_cons.ilog2(), (2 * num_vars).ilog2());
 
     // derive the verifier's challenge tau
     let tau = transcript.challenge_vector(b"challenge_tau", num_rounds_x);
@@ -292,7 +293,7 @@ impl R1CSProof {
           .map(|i| SparsePolyEntry::new(i + 1, input[i]))
           .collect::<Vec<SparsePolyEntry>>(),
       );
-      SparsePolynomial::new(n.log2(), input_as_sparse_poly_entries).evaluate(&ry[1..].to_vec())
+      SparsePolynomial::new(n.ilog2(), input_as_sparse_poly_entries).evaluate(&ry[1..].to_vec())
     };
 
     // compute eval_Z_at_ry = (Scalar::one() - ry[0]) * self.eval_vars_at_ry + ry[0] * poly_input_eval
