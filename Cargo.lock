@@ -493,7 +493,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lcpc2d"
+name = "lcpc-2d"
 version = "0.1.0"
 dependencies = [
  "digest",
@@ -505,6 +505,22 @@ dependencies = [
  "rayon",
  "serde",
  "serde_bytes",
+]
+
+[[package]]
+name = "lcpc-brakedown-pc"
+version = "0.1.0"
+dependencies = [
+ "ff",
+ "itertools",
+ "lcpc-2d",
+ "ndarray",
+ "num-traits",
+ "rand",
+ "rand_chacha",
+ "rayon",
+ "sprs",
+ "typenum",
 ]
 
 [[package]]
@@ -873,22 +889,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
-name = "sdig-pc"
-version = "0.1.0"
-dependencies = [
- "ff",
- "itertools",
- "lcpc2d",
- "ndarray",
- "num-traits",
- "rand",
- "rand_chacha",
- "rayon",
- "sprs",
- "typenum",
-]
-
-[[package]]
 name = "semver"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -966,13 +966,13 @@ dependencies = [
  "fffft",
  "flate2",
  "itertools",
- "lcpc2d",
+ "lcpc-2d",
+ "lcpc-brakedown-pc",
  "merlin",
  "num-traits",
  "rand_chacha",
  "rand_core 0.6.3",
  "rayon",
- "sdig-pc",
  "serde",
  "subtle",
  "thiserror",

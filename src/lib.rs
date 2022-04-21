@@ -13,7 +13,7 @@ extern crate fffft;
 extern crate merlin;
 extern crate rand_chacha;
 extern crate rand_core;
-extern crate sdig_pc;
+extern crate lcpc_brakedown_pc;
 extern crate test;
 
 #[cfg(feature = "multicore")]

@@ -9,8 +9,8 @@ use core::ops::Index;
 use digest::Output;
 use ff::Field;
 use merlin::Transcript;
-use sdig_pc::{SdigCommit, SdigEncoding, SdigEvalProof};
-use lcpc2d::{LcRoot};
+use lcpc_brakedown_pc::{BrakedownCommit, SdigEncoding, BrakedownEvalProof};
+use lcpc_2d::{LcRoot};
 use serde::{Serialize, Deserialize, Deserializer, Serializer};
 
 type Hasher = blake3::Hasher;
@@ -50,7 +50,7 @@ pub struct PolyCommitment {
 
 #[derive(Debug)]
 pub struct PolyDecommitment {
-  decomm: SdigCommit<Hasher, Scalar>,
+  decomm: BrakedownCommit<Hasher, Scalar>,
   enc: SdigEncoding<Scalar>,
   num_vars: usize,
 }
@@ -69,7 +69,7 @@ impl<'de> Deserialize<'de> for PolyDecommitment {
     where
         De: Deserializer<'de>,
     {
-        let (decomm, num_vars) = <(SdigCommit<Hasher, Scalar>, usize) as Deserialize<'de>>::deserialize(deserializer)?;
+        let (decomm, num_vars) = <(BrakedownCommit<Hasher, Scalar>, usize) as Deserialize<'de>>::deserialize(deserializer)?;
         let enc = SdigEncoding::new_ml(num_vars, 0);
         Ok(PolyDecommitment { decomm, enc, num_vars })
     }
@@ -181,7 +181,7 @@ impl DensePolynomial {
     //let enc = LigeroEncoding::new(coeffs.len());
     //let decomm = LigeroCommit::<Hasher, _>::commit(&coeffs, &enc).unwrap();
     let enc = SdigEncoding::new_ml(self.num_vars, 0);
-    let decomm = SdigCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
+    let decomm = BrakedownCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
     let C = decomm.get_root(); // this is the polynomial commitment
     (PolyCommitment { C }, PolyDecommitment { decomm, enc, num_vars: self.num_vars })
   }
@@ -271,7 +271,7 @@ impl AppendToTranscript for PolyCommitment {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PolyEvalProof {
-  proof: SdigEvalProof<Hasher, Scalar>,
+  proof: BrakedownEvalProof<Hasher, Scalar>,
   left_num_vars: usize,
   right_num_vars: usize,
 }
