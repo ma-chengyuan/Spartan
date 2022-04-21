@@ -29,8 +29,8 @@ ff = {version = "0.10", features = ["derive"]}
 rand_chacha = "0.3"
 fffft = "*"
 blake3 = "0.3"
-lcpc-ligero-pc = {path = "../lcpc/lcpc-ligero-pc"} 
-lcpc-2d = {path = "../lcpc/lcpc-2d"}
+lcpc-ligero-pc = "0.1"
+lcpc-2d = "0.1"
 ff-derive-num = "0.1"
 num-traits = "0.2"
 
