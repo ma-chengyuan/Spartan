@@ -8,8 +8,8 @@ use blake3::traits::digest;
 use core::ops::Index;
 use digest::Output;
 use ff::Field;
-use lcpc2d::LcRoot;
-use ligero_pc::{LigeroCommit, LigeroEncoding, LigeroEvalProof};
+use lcpc_2d::LcRoot;
+use lcpc_ligero_pc::{LigeroCommit, LigeroEncoding, LigeroEvalProof};
 use merlin::Transcript;
 use serde::{Deserialize, Serialize, Deserializer, Serializer};
 

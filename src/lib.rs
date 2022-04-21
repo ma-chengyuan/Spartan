@@ -10,7 +10,7 @@ extern crate core;
 extern crate digest;
 extern crate ff;
 extern crate fffft;
-extern crate ligero_pc;
+extern crate lcpc_ligero_pc;
 extern crate merlin;
 extern crate rand_chacha;
 extern crate rand_core;
