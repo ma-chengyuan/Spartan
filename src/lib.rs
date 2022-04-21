@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 #![feature(test)]
-#![feature(int_log)]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 
