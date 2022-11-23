@@ -100,7 +100,7 @@ impl DerefsEvalProof {
     transcript: &mut Transcript,
     random_tape: &mut RandomTape,
   ) -> PolyEvalProof {
-    assert_eq!(joint_poly.get_num_vars(), r.len() + evals.len().ilog2());
+    assert_eq!(joint_poly.get_num_vars(), r.len() + evals.len().ilog2() as usize);
 
     // append the claimed evaluations to transcript
     evals.append_to_transcript(b"evals_ops_val", transcript);
@@ -108,7 +108,7 @@ impl DerefsEvalProof {
     // n-to-1 reduction
     let (r_joint, eval_joint) = {
       let challenges =
-        transcript.challenge_vector(b"challenge_combine_n_to_one", evals.len().ilog2());
+        transcript.challenge_vector(b"challenge_combine_n_to_one", evals.len().ilog2() as usize);
       let mut poly_evals = DensePolynomial::new(evals);
       for i in (0..challenges.len()).rev() {
         poly_evals.bound_poly_var_bot(&challenges[i]);
@@ -182,7 +182,7 @@ impl DerefsEvalProof {
     evals.append_to_transcript(b"evals_ops_val", transcript);
 
     // n-to-1 reduction
-    let challenges = transcript.challenge_vector(b"challenge_combine_n_to_one", evals.len().ilog2());
+    let challenges = transcript.challenge_vector(b"challenge_combine_n_to_one", evals.len().ilog2() as usize);
     let mut poly_evals = DensePolynomial::new(evals);
     for i in (0..challenges.len()).rev() {
       poly_evals.bound_poly_var_bot(&challenges[i]);
@@ -325,14 +325,14 @@ impl SparseMatPolyCommitmentGens {
     batch_size: usize,
   ) -> SparseMatPolyCommitmentGens {
     let num_vars_ops =
-      num_nz_entries.next_power_of_two().ilog2() + (batch_size * 5).next_power_of_two().ilog2();
+      (num_nz_entries.next_power_of_two().ilog2() + (batch_size * 5).next_power_of_two().ilog2()) as usize;
     let num_vars_mem = if num_vars_x > num_vars_y {
       num_vars_x
     } else {
       num_vars_y
     } + 1;
     let num_vars_derefs =
-      num_nz_entries.next_power_of_two().ilog2() + (batch_size * 2).next_power_of_two().ilog2();
+      (num_nz_entries.next_power_of_two().ilog2() + (batch_size * 2).next_power_of_two().ilog2()) as usize;
 
     let gens_ops = PolyCommitmentGens::new(num_vars_ops, label);
     let gens_mem = PolyCommitmentGens::new(num_vars_mem, label);
@@ -822,7 +822,7 @@ impl HashLayerProof {
     evals_ops.resize(evals_ops.len().next_power_of_two(), Scalar::zero());
     evals_ops.append_to_transcript(b"claim_evals_ops", transcript);
     let challenges_ops =
-      transcript.challenge_vector(b"challenge_combine_n_to_one", evals_ops.len().ilog2());
+      transcript.challenge_vector(b"challenge_combine_n_to_one", evals_ops.len().ilog2() as usize);
 
     let mut poly_evals_ops = DensePolynomial::new(evals_ops);
     for i in (0..challenges_ops.len()).rev() {
@@ -850,7 +850,7 @@ impl HashLayerProof {
     let evals_mem: Vec<Scalar> = vec![eval_row_audit_ts, eval_col_audit_ts];
     evals_mem.append_to_transcript(b"claim_evals_mem", transcript);
     let challenges_mem =
-      transcript.challenge_vector(b"challenge_combine_two_to_one", evals_mem.len().ilog2());
+      transcript.challenge_vector(b"challenge_combine_two_to_one", evals_mem.len().ilog2() as usize);
 
     let mut poly_evals_mem = DensePolynomial::new(evals_mem);
     for i in (0..challenges_mem.len()).rev() {
@@ -998,7 +998,7 @@ impl HashLayerProof {
     evals_ops.append_to_transcript(b"claim_evals_ops", transcript);
 
     let challenges_ops =
-      transcript.challenge_vector(b"challenge_combine_n_to_one", evals_ops.len().ilog2());
+      transcript.challenge_vector(b"challenge_combine_n_to_one", evals_ops.len().ilog2() as usize);
 
     let mut poly_evals_ops = DensePolynomial::new(evals_ops);
     for i in (0..challenges_ops.len()).rev() {
@@ -1025,7 +1025,7 @@ impl HashLayerProof {
     let evals_mem: Vec<Scalar> = vec![*eval_row_audit_ts, *eval_col_audit_ts];
     evals_mem.append_to_transcript(b"claim_evals_mem", transcript);
     let challenges_mem =
-      transcript.challenge_vector(b"challenge_combine_two_to_one", evals_mem.len().ilog2());
+      transcript.challenge_vector(b"challenge_combine_two_to_one", evals_mem.len().ilog2() as usize);
 
     let mut poly_evals_mem = DensePolynomial::new(evals_mem);
     for i in (0..challenges_mem.len()).rev() {
@@ -1692,8 +1692,8 @@ mod tests {
     let num_nz_entries = 16384;
     let num_rows: usize = 16384;
     let num_cols: usize = 16384;
-    let num_vars_x = num_rows.ilog2();
-    let num_vars_y = num_cols.ilog2();
+    let num_vars_x = num_rows.ilog2() as usize;
+    let num_vars_y = num_cols.ilog2() as usize;
 
     let mut M: Vec<SparseMatEntry> = Vec::new();
 

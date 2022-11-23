@@ -73,7 +73,7 @@ impl Assignment {
       let mut vec_scalar: Vec<Scalar> = Vec::new();
       for i in 0..vec.len() {
         let val = Scalar::from_repr(ScalarRepr(vec[i]));
-        if val.is_some() {
+        if val.is_some().into() {
           vec_scalar.push(val.unwrap());
         } else {
           return Err(R1CSError::InvalidScalar);
@@ -176,7 +176,7 @@ impl Instance {
           }
 
           let val = Scalar::from_repr(ScalarRepr(val_bytes));
-          if val.is_some() {
+          if val.is_some().into() {
             // if col >= num_vars, it means that it is referencing a 1 or input in the satisfying
             // assignment
             if col >= num_vars {
