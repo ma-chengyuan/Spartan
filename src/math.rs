@@ -19,7 +19,13 @@ impl Math for usize {
 
   #[inline]
   fn ilog2(self) -> usize {
-      (Self::BITS - self.leading_zeros() - 1) as Self
+    assert_ne!(self, 0);
+
+    if self.is_power_of_two() {
+      (1usize.leading_zeros() - self.leading_zeros()) as usize
+    } else {
+      (0usize.leading_zeros() - self.leading_zeros()) as usize
+    }
   }
 
   /// Returns the num_bits from n in a canonical order

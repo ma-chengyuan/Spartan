@@ -8,10 +8,10 @@ use blake3::traits::digest;
 use core::ops::Index;
 use digest::Output;
 use ff::Field;
+use lcpc_2d::LcRoot;
+use lcpc_brakedown_pc::{BrakedownCommit, BrakedownEvalProof, SdigEncoding};
 use merlin::Transcript;
-use lcpc_brakedown_pc::{BrakedownCommit, SdigEncoding, BrakedownEvalProof};
-use lcpc_2d::{LcRoot};
-use serde::{Serialize, Deserialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 type Hasher = blake3::Hasher;
 
@@ -56,23 +56,28 @@ pub struct PolyDecommitment {
 }
 
 impl Serialize for PolyDecommitment {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        (&self.decomm, self.num_vars).serialize(serializer)
-    }
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    (&self.decomm, self.num_vars).serialize(serializer)
+  }
 }
 
 impl<'de> Deserialize<'de> for PolyDecommitment {
-    fn deserialize<De>(deserializer: De) -> Result<Self, De::Error>
-    where
-        De: Deserializer<'de>,
-    {
-        let (decomm, num_vars) = <(BrakedownCommit<Hasher, Scalar>, usize) as Deserialize<'de>>::deserialize(deserializer)?;
-        let enc = SdigEncoding::new_ml(num_vars, 0);
-        Ok(PolyDecommitment { decomm, enc, num_vars })
-    }
+  fn deserialize<De>(deserializer: De) -> Result<Self, De::Error>
+  where
+    De: Deserializer<'de>,
+  {
+    let (decomm, num_vars) =
+      <(BrakedownCommit<Hasher, Scalar>, usize) as Deserialize<'de>>::deserialize(deserializer)?;
+    let enc = SdigEncoding::new_ml(num_vars, 0);
+    Ok(PolyDecommitment {
+      decomm,
+      enc,
+      num_vars,
+    })
+  }
 }
 
 pub struct EqPolynomial {
@@ -183,7 +188,14 @@ impl DensePolynomial {
     let enc = SdigEncoding::new_ml(self.num_vars, 0);
     let decomm = BrakedownCommit::<Hasher, _>::commit(&self.Z, &enc).unwrap();
     let C = decomm.get_root(); // this is the polynomial commitment
-    (PolyCommitment { C }, PolyDecommitment { decomm, enc, num_vars: self.num_vars })
+    (
+      PolyCommitment { C },
+      PolyDecommitment {
+        decomm,
+        enc,
+        num_vars: self.num_vars,
+      },
+    )
   }
 
   pub fn bound_poly_var_top(&mut self, r: &Scalar) {
@@ -302,8 +314,8 @@ impl PolyEvalProof {
       decomm.decomm.get_n_rows().ilog2() as usize,
       r.len() - decomm.decomm.get_n_rows().ilog2() as usize,
     );
-    let L_size = left_num_vars.pow(2);
-    let R_size = right_num_vars.pow(2);
+    let L_size = 2_usize.pow(left_num_vars as u32);
+    let R_size = 2_usize.pow(right_num_vars as u32);
 
     let default_blinds = PolyCommitmentBlinds {
       blinds: vec![Scalar::zero(); L_size],

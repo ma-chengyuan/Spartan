@@ -9,10 +9,10 @@ extern crate core;
 extern crate digest;
 extern crate ff;
 extern crate fffft;
+extern crate lcpc_brakedown_pc;
 extern crate merlin;
 extern crate rand_chacha;
 extern crate rand_core;
-extern crate lcpc_brakedown_pc;
 extern crate test;
 
 #[cfg(feature = "multicore")]
@@ -44,9 +44,9 @@ use r1csproof::{R1CSGens, R1CSProof};
 use random::RandomTape;
 use scalar::Scalar;
 use scalar::ScalarRepr;
+use serde::{Deserialize, Serialize};
 use timer::Timer;
 use transcript::{AppendToTranscript, ProofTranscript};
-use serde::{Serialize, Deserialize};
 
 /// `ComputationCommitment` holds a public preprocessed NP statement (e.g., R1CS)
 #[derive(Debug, Serialize, Deserialize)]
