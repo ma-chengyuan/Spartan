@@ -150,7 +150,7 @@ impl IdentityPolynomial {
 impl DensePolynomial {
   pub fn new(Z: Vec<Scalar>) -> Self {
     let len = Z.len();
-    let num_vars = len.ilog2() as usize;
+    let num_vars = len.log_2() as usize;
     DensePolynomial { num_vars, Z, len }
   }
 
@@ -311,8 +311,8 @@ impl PolyEvalProof {
 
     // compute L and R
     let (left_num_vars, right_num_vars) = (
-      decomm.decomm.get_n_rows().ilog2() as usize,
-      r.len() - decomm.decomm.get_n_rows().ilog2() as usize,
+      decomm.decomm.get_n_rows().log_2() as usize,
+      r.len() - decomm.decomm.get_n_rows().log_2() as usize,
     );
     let L_size = 2_usize.pow(left_num_vars as u32);
     let R_size = 2_usize.pow(right_num_vars as u32);
