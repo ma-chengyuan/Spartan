@@ -152,8 +152,8 @@ impl R1CSInstance {
     let mut csprng: OsRng = OsRng;
 
     // assert num_cons and num_vars are power of 2
-    assert_eq!((num_cons.ilog2() as usize).pow(2), num_cons);
-    assert_eq!((num_vars.ilog2() as usize).pow(2), num_vars);
+    assert_eq!(2_usize.pow(num_cons.ilog2() as u32), num_cons);
+    assert_eq!(2_usize.pow(num_vars.ilog2() as u32), num_vars);
 
     // num_inputs + 1 <= num_vars
     assert!(num_inputs < num_vars);
