@@ -1,7 +1,7 @@
 pub trait Math {
   fn square_root(self) -> usize;
   fn pow2(self) -> usize;
-  fn ilog2(self) -> usize;
+  fn log_2(self) -> usize;
   fn get_bits(self, num_bits: usize) -> Vec<bool>;
 }
 
@@ -18,7 +18,7 @@ impl Math for usize {
   }
 
   #[inline]
-  fn ilog2(self) -> usize {
+  fn log_2(self) -> usize {
     assert_ne!(self, 0);
 
     if self.is_power_of_two() {
