@@ -1,0 +1,3 @@
+[submodule "lcpc"]
+	path = lcpc
+	url = git@github.com:ma-chengyuan/lcpc.git
