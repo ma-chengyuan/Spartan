@@ -1,5 +1,8 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
+
 use super::dense_mlpoly::DensePolynomial;
 use super::errors::ProofVerifyError;
 use super::scalar::Scalar;
@@ -9,6 +12,37 @@ use ff::Field;
 use itertools::izip;
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
+
+static SUMCHECK_DURATION: LazyLock<Mutex<Duration>> =
+  LazyLock::new(|| Mutex::new(Duration::new(0, 0)));
+
+struct SumcheckTimer(Instant);
+
+impl SumcheckTimer {
+  pub fn start() -> SumcheckTimer {
+    SumcheckTimer(Instant::now())
+  }
+}
+
+impl Drop for SumcheckTimer {
+  fn drop(&mut self) {
+    let elapsed = self.0.elapsed();
+    let mut sumcheck_duration = SUMCHECK_DURATION.lock().unwrap();
+    *sumcheck_duration += elapsed;
+  }
+}
+
+/// Reset the sumcheck duration
+pub fn reset_sumcheck_duration() {
+  let mut sumcheck_duration = SUMCHECK_DURATION.lock().unwrap();
+  *sumcheck_duration = Duration::new(0, 0);
+}
+
+/// Get the sumcheck duration
+pub fn get_sumcheck_duration() -> Duration {
+  let sumcheck_duration = SUMCHECK_DURATION.lock().unwrap();
+  *sumcheck_duration
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SumcheckInstanceProof {
@@ -69,6 +103,7 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar) -> Scalar,
   {
+    let _timer = SumcheckTimer::start();
     let mut e = *claim;
     let mut r: Vec<Scalar> = Vec::new();
     let mut quad_polys: Vec<CompressedUniPoly> = Vec::new();
@@ -123,6 +158,7 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar, &Scalar, &Scalar) -> Scalar,
   {
+    let _timer = SumcheckTimer::start();
     let mut e = *claim;
     let mut r: Vec<Scalar> = Vec::new();
     let mut cubic_polys: Vec<CompressedUniPoly> = Vec::new();
@@ -200,6 +236,7 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar, &Scalar) -> Scalar,
   {
+    let _timer = SumcheckTimer::start();
     let mut e = *claim;
     let mut r: Vec<Scalar> = Vec::new();
     let mut cubic_polys: Vec<CompressedUniPoly> = Vec::new();
@@ -284,6 +321,8 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar, &Scalar) -> Scalar,
   {
+    let _timer = SumcheckTimer::start();
+
     let (poly_A_vec_par, poly_B_vec_par, poly_C_par) = poly_vec_par;
     let (poly_A_vec_seq, poly_B_vec_seq, poly_C_vec_seq) = poly_vec_seq;
 

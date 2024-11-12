@@ -4,7 +4,7 @@ extern crate libspartan;
 extern crate merlin;
 
 use flate2::{write::ZlibEncoder, Compression};
-use libspartan::{Instance, SNARKGens, SNARK};
+use libspartan::{get_sumcheck_duration, reset_sumcheck_duration, Instance, SNARKGens, SNARK};
 use merlin::Transcript;
 
 fn print(msg: &str) {
@@ -14,10 +14,11 @@ fn print(msg: &str) {
 
 pub fn main() {
   // the list of number of variables (and constraints) in an R1CS instance
-  let inst_sizes = vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+  let inst_sizes = vec![/*10, 11, 12, 13, 14, 15, 16, 17, 18, 19, */ 20];
 
   println!("Profiler:: SNARK");
   for &s in inst_sizes.iter() {
+    reset_sumcheck_duration();
     let num_vars = (2 as usize).pow(s as u32);
     let num_cons = num_vars;
     let num_inputs = 10;
@@ -40,6 +41,8 @@ pub fn main() {
     let proof_encoded = encoder.finish().unwrap();
     let msg_proof_len = format!("SNARK::proof_compressed_len {:?}", proof_encoded.len());
     print(&msg_proof_len);
+
+    println!("Sumcheck duration: {:?}", get_sumcheck_duration());
 
     // verify the proof of satisfiability
     let mut verifier_transcript = Transcript::new(b"snark_example");

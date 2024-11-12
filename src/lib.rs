@@ -48,6 +48,8 @@ use serde::{Deserialize, Serialize};
 use timer::Timer;
 use transcript::{AppendToTranscript, ProofTranscript};
 
+pub use sumcheck::{get_sumcheck_duration, reset_sumcheck_duration};
+
 /// `ComputationCommitment` holds a public preprocessed NP statement (e.g., R1CS)
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ComputationCommitment {
