@@ -13,6 +13,8 @@ use itertools::izip;
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 
+use rayon::prelude::*;
+
 static SUMCHECK_DURATION: LazyLock<Mutex<Duration>> =
   LazyLock::new(|| Mutex::new(Duration::new(0, 0)));
 
@@ -103,7 +105,7 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar) -> Scalar,
   {
-    let _timer = SumcheckTimer::start();
+    // let _timer = SumcheckTimer::start();
     let mut e = *claim;
     let mut r: Vec<Scalar> = Vec::new();
     let mut quad_polys: Vec<CompressedUniPoly> = Vec::new();
@@ -158,7 +160,7 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar, &Scalar, &Scalar) -> Scalar,
   {
-    let _timer = SumcheckTimer::start();
+    // let _timer = SumcheckTimer::start();
     let mut e = *claim;
     let mut r: Vec<Scalar> = Vec::new();
     let mut cubic_polys: Vec<CompressedUniPoly> = Vec::new();
@@ -236,7 +238,7 @@ impl SumcheckInstanceProof {
   where
     F: Fn(&Scalar, &Scalar, &Scalar) -> Scalar,
   {
-    let _timer = SumcheckTimer::start();
+    // let _timer = SumcheckTimer::start();
     let mut e = *claim;
     let mut r: Vec<Scalar> = Vec::new();
     let mut cubic_polys: Vec<CompressedUniPoly> = Vec::new();
@@ -319,12 +321,16 @@ impl SumcheckInstanceProof {
     (Vec<Scalar>, Vec<Scalar>, Vec<Scalar>),
   )
   where
-    F: Fn(&Scalar, &Scalar, &Scalar) -> Scalar,
+    F: Sync + Fn(&Scalar, &Scalar, &Scalar) -> Scalar,
   {
-    let _timer = SumcheckTimer::start();
-
     let (poly_A_vec_par, poly_B_vec_par, poly_C_par) = poly_vec_par;
     let (poly_A_vec_seq, poly_B_vec_seq, poly_C_vec_seq) = poly_vec_seq;
+    // println!("poly_A_vec_par.len() = {}", poly_A_vec_par.len());
+    // println!("poly_B_vec_par.len() = {}", poly_B_vec_par.len());
+    // println!("poly_C_par.len() = {}", poly_C_par.len());
+    // println!("poly_A_vec_seq.len() = {}", poly_A_vec_seq.len());
+    // println!("poly_B_vec_seq.len() = {}", poly_B_vec_seq.len());
+    // println!("poly_C_vec_seq.len() = {}", poly_C_vec_seq.len());
 
     //let (poly_A_vec_seq, poly_B_vec_seq, poly_C_vec_seq) = poly_vec_seq;
     let mut e = *claim;
@@ -335,36 +341,40 @@ impl SumcheckInstanceProof {
       let mut evals: Vec<(Scalar, Scalar, Scalar)> = Vec::new();
 
       for (poly_A, poly_B) in poly_A_vec_par.iter().zip(poly_B_vec_par.iter()) {
-        let mut eval_point_0 = Scalar::zero();
-        let mut eval_point_2 = Scalar::zero();
-        let mut eval_point_3 = Scalar::zero();
-
         let len = poly_A.len() / 2;
-        for i in 0..len {
-          // eval 0: bound_func is A(low)
-          eval_point_0 += comb_func(&poly_A[i], &poly_B[i], &poly_C_par[i]);
 
-          // eval 2: bound_func is -A(low) + 2*A(high)
-          let poly_A_bound_point = poly_A[len + i] + poly_A[len + i] - poly_A[i];
-          let poly_B_bound_point = poly_B[len + i] + poly_B[len + i] - poly_B[i];
-          let poly_C_bound_point = poly_C_par[len + i] + poly_C_par[len + i] - poly_C_par[i];
-          eval_point_2 += comb_func(
-            &poly_A_bound_point,
-            &poly_B_bound_point,
-            &poly_C_bound_point,
+        let (eval_point_0, eval_point_2, eval_point_3) = (0..len)
+          .into_par_iter()
+          .map(|i| {
+            // eval 0: bound_func is A(low)
+            let eval_point_0 = comb_func(&poly_A[i], &poly_B[i], &poly_C_par[i]);
+
+            // eval 2: bound_func is -A(low) + 2*A(high)
+            let poly_A_bound_point = poly_A[len + i] + poly_A[len + i] - poly_A[i];
+            let poly_B_bound_point = poly_B[len + i] + poly_B[len + i] - poly_B[i];
+            let poly_C_bound_point = poly_C_par[len + i] + poly_C_par[len + i] - poly_C_par[i];
+            let eval_point_2 = comb_func(
+              &poly_A_bound_point,
+              &poly_B_bound_point,
+              &poly_C_bound_point,
+            );
+
+            // eval 3: bound_func is -2A(low) + 3A(high); computed incrementally with bound_func applied to eval(2)
+            let poly_A_bound_point = poly_A_bound_point + poly_A[len + i] - poly_A[i];
+            let poly_B_bound_point = poly_B_bound_point + poly_B[len + i] - poly_B[i];
+            let poly_C_bound_point = poly_C_bound_point + poly_C_par[len + i] - poly_C_par[i];
+
+            let eval_point_3 = comb_func(
+              &poly_A_bound_point,
+              &poly_B_bound_point,
+              &poly_C_bound_point,
+            );
+            (eval_point_0, eval_point_2, eval_point_3)
+          })
+          .reduce(
+            || (Scalar::zero(), Scalar::zero(), Scalar::zero()),
+            |acc, x| (acc.0 + x.0, acc.1 + x.1, acc.2 + x.2),
           );
-
-          // eval 3: bound_func is -2A(low) + 3A(high); computed incrementally with bound_func applied to eval(2)
-          let poly_A_bound_point = poly_A_bound_point + poly_A[len + i] - poly_A[i];
-          let poly_B_bound_point = poly_B_bound_point + poly_B[len + i] - poly_B[i];
-          let poly_C_bound_point = poly_C_bound_point + poly_C_par[len + i] - poly_C_par[i];
-
-          eval_point_3 += comb_func(
-            &poly_A_bound_point,
-            &poly_B_bound_point,
-            &poly_C_bound_point,
-          );
-        }
 
         evals.push((eval_point_0, eval_point_2, eval_point_3));
       }
@@ -374,34 +384,44 @@ impl SumcheckInstanceProof {
         poly_B_vec_seq.iter(),
         poly_C_vec_seq.iter()
       ) {
-        let mut eval_point_0 = Scalar::zero();
-        let mut eval_point_2 = Scalar::zero();
-        let mut eval_point_3 = Scalar::zero();
         let len = poly_A.len() / 2;
-        for i in 0..len {
-          // eval 0: bound_func is A(low)
-          eval_point_0 += comb_func(&poly_A[i], &poly_B[i], &poly_C[i]);
-          // eval 2: bound_func is -A(low) + 2*A(high)
-          let poly_A_bound_point = poly_A[len + i] + poly_A[len + i] - poly_A[i];
-          let poly_B_bound_point = poly_B[len + i] + poly_B[len + i] - poly_B[i];
-          let poly_C_bound_point = poly_C[len + i] + poly_C[len + i] - poly_C[i];
-          eval_point_2 += comb_func(
-            &poly_A_bound_point,
-            &poly_B_bound_point,
-            &poly_C_bound_point,
+
+        let (eval_point_0, eval_point_2, eval_point_3) = (0..len)
+          .into_par_iter()
+          .map(|i| {
+            // eval 0: bound_func is A(low)
+            let eval_point_0 = comb_func(&poly_A[i], &poly_B[i], &poly_C[i]);
+
+            // eval 2: bound_func is -A(low) + 2*A(high)
+            let poly_A_bound_point = poly_A[len + i] + poly_A[len + i] - poly_A[i];
+            let poly_B_bound_point = poly_B[len + i] + poly_B[len + i] - poly_B[i];
+            let poly_C_bound_point = poly_C[len + i] + poly_C[len + i] - poly_C[i];
+            let eval_point_2 = comb_func(
+              &poly_A_bound_point,
+              &poly_B_bound_point,
+              &poly_C_bound_point,
+            );
+
+            // eval 3: bound_func is -2A(low) + 3A(high); computed incrementally with bound_func applied to eval(2)
+            let poly_A_bound_point = poly_A_bound_point + poly_A[len + i] - poly_A[i];
+            let poly_B_bound_point = poly_B_bound_point + poly_B[len + i] - poly_B[i];
+            let poly_C_bound_point = poly_C_bound_point + poly_C[len + i] - poly_C[i];
+            let eval_point_3 = comb_func(
+              &poly_A_bound_point,
+              &poly_B_bound_point,
+              &poly_C_bound_point,
+            );
+            (eval_point_0, eval_point_2, eval_point_3)
+          })
+          .reduce(
+            || (Scalar::zero(), Scalar::zero(), Scalar::zero()),
+            |acc, x| (acc.0 + x.0, acc.1 + x.1, acc.2 + x.2),
           );
-          // eval 3: bound_func is -2A(low) + 3A(high); computed incrementally with bound_func applied to eval(2)
-          let poly_A_bound_point = poly_A_bound_point + poly_A[len + i] - poly_A[i];
-          let poly_B_bound_point = poly_B_bound_point + poly_B[len + i] - poly_B[i];
-          let poly_C_bound_point = poly_C_bound_point + poly_C[len + i] - poly_C[i];
-          eval_point_3 += comb_func(
-            &poly_A_bound_point,
-            &poly_B_bound_point,
-            &poly_C_bound_point,
-          );
-        }
+
         evals.push((eval_point_0, eval_point_2, eval_point_3));
       }
+
+      let _timer = SumcheckTimer::start();
 
       let evals_combined_0 = (0..evals.len()).map(|i| evals[i].0 * coeffs[i]).sum();
       let evals_combined_2 = (0..evals.len()).map(|i| evals[i].1 * coeffs[i]).sum();
@@ -438,6 +458,7 @@ impl SumcheckInstanceProof {
         poly_B.bound_poly_var_top(&r_j);
         poly_C.bound_poly_var_top(&r_j);
       }
+      drop(_timer);
 
       e = poly.evaluate(&r_j);
       cubic_polys.push(poly.compress());

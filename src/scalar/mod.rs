@@ -4,12 +4,18 @@ use ff::{Field, PrimeField};
 use ff_derive_num::Num;
 use serde::{Deserialize, Serialize};
 
+pub mod goldilocks;
+
 // T&E Phase2 254-bit scalar
-#[derive(PrimeField, Num, Serialize, Deserialize)]
-#[PrimeFieldModulus = "21888242871839275222246405745257275088548364400416034343698204186575808495617"]
-#[PrimeFieldGenerator = "5"]
-#[PrimeFieldReprEndianness = "little"]
-pub struct Scalar([u64; 4]);
+// #[derive(PrimeField, Num, Serialize, Deserialize)]
+// #[PrimeFieldModulus = "21888242871839275222246405745257275088548364400416034343698204186575808495617"]
+// #[PrimeFieldGenerator = "5"]
+// #[PrimeFieldReprEndianness = "little"]
+// pub struct Scalar([u64; 4]);
+
+// pub type Scalar = goldilocks::Goldilocks;
+// pub type ScalarRepr = goldilocks::GoldilocksRepr;
+pub use goldilocks::{Goldilocks as Scalar, GoldilocksRepr as ScalarRepr};
 
 // 128-bit scalar
 //#[derive(PrimeField, Serialize, Deserialize)]
