@@ -14,7 +14,10 @@ fn print(msg: &str) {
 
 pub fn main() {
   // the list of number of variables (and constraints) in an R1CS instance
-  let inst_sizes = vec![/*10, 11, 12, 13, 14, 15, 16, 17, 18, 19, */ 20];
+  let spartan_n = std::env::var("SPARTAN_N").ok()
+    .and_then(|s| s.parse::<u32>().ok())
+    .unwrap_or(20);
+  let inst_sizes = vec![spartan_n];
 
   println!("Profiler:: SNARK");
   for &s in inst_sizes.iter() {
